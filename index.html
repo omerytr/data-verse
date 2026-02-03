@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ryoji Ikeda — Canlı Sahne</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        background: #000;
+        color: #f5f5f5;
+        overflow: hidden;
+      }
+
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .ui {
+        position: absolute;
+        left: 50%;
+        bottom: 10vh;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 24px;
+        z-index: 3;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+
+      .card {
+        width: 220px;
+        height: 280px;
+        border-radius: 22px;
+        background: rgba(10, 10, 10, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.75);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      }
+
+      .card::before {
+        content: '';
+        position: absolute;
+        inset: -40%;
+        background: radial-gradient(circle at center, rgba(255, 255, 255, 0.25), transparent 55%);
+        opacity: 0;
+        transition: opacity 0.35s ease;
+      }
+
+      .card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 60%);
+        opacity: 0;
+        transition: opacity 0.35s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-6px) scale(1.02);
+        border-color: rgba(255, 255, 255, 0.65);
+        box-shadow: 0 0 32px rgba(255, 255, 255, 0.25);
+      }
+
+      .card:hover::before,
+      .card:hover::after {
+        opacity: 1;
+      }
+
+      body.scene .ui {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, 20px);
+      }
+
+      .footer {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        letter-spacing: 0.2em;
+        color: rgba(255, 255, 255, 0.5);
+        z-index: 2;
+      }
+
+      @media (max-width: 720px) {
+        .ui {
+          flex-direction: column;
+          bottom: 6vh;
+        }
+
+        .card {
+          width: 200px;
+          height: 220px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="starCanvas" aria-hidden="true"></canvas>
+    <canvas id="artCanvas" aria-hidden="true"></canvas>
+
+    <div class="ui" aria-label="Ryoji Ikeda eserleri">
+      <div class="card" data-art="sphere">Superposition</div>
+      <div class="card" data-art="datamatics">Datamatics</div>
+      <div class="card" data-art="testpattern">Test Pattern</div>
+    </div>
+
+    <div class="footer">by Ömer Yiğit Kartal</div>
+
+    <script>
+      const starCanvas = document.getElementById('starCanvas');
+      const artCanvas = document.getElementById('artCanvas');
+      const cards = Array.from(document.querySelectorAll('.card'));
+
+      let starCtx;
+      let artCtx;
+      let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, active: false };
+
+      function resizeCanvas(canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return ctx;
+      }
+
+      function resizeAll() {
+        starCtx = resizeCanvas(starCanvas);
+        artCtx = resizeCanvas(artCanvas);
+      }
+
+      resizeAll();
+
+      const stars = Array.from({ length: 220 }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        radius: Math.random() * 1.4 + 0.3,
+        alpha: Math.random() * 0.6 + 0.2,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.2
+      }));
+
+      function updateStars() {
+        starCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        starCtx.fillStyle = '#000';
+        starCtx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+        stars.forEach(star => {
+          const dx = star.x - mouse.x;
+          const dy = star.y - mouse.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (mouse.active && dist < 160) {
+            star.x += dx * 0.002;
+            star.y += dy * 0.002;
+          }
+
+          star.x += star.vx;
+          star.y += star.vy;
+
+          if (star.x < 0) star.x = window.innerWidth;
+          if (star.x > window.innerWidth) star.x = 0;
+          if (star.y < 0) star.y = window.innerHeight;
+          if (star.y > window.innerHeight) star.y = 0;
+
+          starCtx.beginPath();
+          starCtx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+          starCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+          starCtx.fill();
+        });
+      }
+
+      let activeArt = null;
+      let startTime = performance.now();
+
+      const spherePoints = Array.from({ length: 240 }, () => {
+        const u = Math.random() * Math.PI * 2;
+        const v = Math.acos(2 * Math.random() - 1);
+        return { theta: u, phi: v };
+      });
+
+      function drawSphere(time) {
+        const t = Math.min(1, (time - startTime) / 2000);
+        const radius = t * 140;
+        artCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        artCtx.save();
+        artCtx.translate(window.innerWidth / 2, window.innerHeight / 2);
+        artCtx.strokeStyle = 'rgba(255,255,255,0.4)';
+        artCtx.lineWidth = 1;
+
+        spherePoints.forEach(point => {
+          const x = radius * Math.sin(point.phi) * Math.cos(point.theta + time * 0.0004);
+          const y = radius * Math.cos(point.phi);
+          const z = radius * Math.sin(point.phi) * Math.sin(point.theta + time * 0.0004);
+          const scale = (z / radius + 1.6) / 2.4;
+          artCtx.beginPath();
+          artCtx.arc(x * scale, y * scale, 1.4 * scale + 0.2, 0, Math.PI * 2);
+          artCtx.fillStyle = `rgba(255,255,255,${0.25 + scale * 0.6})`;
+          artCtx.fill();
+        });
+
+        const ringRadius = radius * 1.35;
+        for (let i = 0; i < 3; i++) {
+          artCtx.beginPath();
+          for (let a = 0; a <= Math.PI * 2; a += 0.12) {
+            const rx = Math.cos(a) * ringRadius;
+            const ry = Math.sin(a) * ringRadius * 0.35;
+            if (a === 0) artCtx.moveTo(rx, ry);
+            artCtx.lineTo(rx, ry);
+          }
+          artCtx.strokeStyle = `rgba(255,255,255,${0.3 + i * 0.1})`;
+          artCtx.stroke();
+          artCtx.rotate(0.12 + i * 0.12);
+        }
+
+        artCtx.restore();
+      }
+
+      function drawDatamatics(time) {
+        artCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        artCtx.save();
+        artCtx.translate(window.innerWidth / 2, window.innerHeight / 2);
+        const size = 300;
+        const step = 16;
+        for (let x = -size; x <= size; x += step) {
+          for (let y = -size; y <= size; y += step) {
+            const noise = Math.sin((x + time * 0.08) * 0.02) + Math.cos((y + time * 0.1) * 0.02);
+            const alpha = 0.15 + (noise + 2) / 5;
+            artCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+            artCtx.fillRect(x, y, 2, 10 + noise * 6);
+          }
+        }
+        artCtx.restore();
+      }
+
+      function drawTestPattern(time) {
+        artCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        const bands = 14;
+        for (let i = 0; i < bands; i++) {
+          const y = (window.innerHeight / bands) * i;
+          const pulse = Math.sin(time * 0.003 + i) * 0.5 + 0.5;
+          artCtx.fillStyle = `rgba(255,255,255,${0.08 + pulse * 0.35})`;
+          artCtx.fillRect(0, y, window.innerWidth, window.innerHeight / bands);
+        }
+        artCtx.strokeStyle = 'rgba(255,255,255,0.4)';
+        artCtx.lineWidth = 1;
+        for (let x = 0; x < window.innerWidth; x += 48) {
+          artCtx.beginPath();
+          artCtx.moveTo(x, 0);
+          artCtx.lineTo(x + Math.sin(time * 0.004 + x * 0.01) * 18, window.innerHeight);
+          artCtx.stroke();
+        }
+      }
+
+      function animate(time) {
+        updateStars();
+        if (activeArt === 'sphere') drawSphere(time);
+        if (activeArt === 'datamatics') drawDatamatics(time);
+        if (activeArt === 'testpattern') drawTestPattern(time);
+        if (!activeArt) artCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        requestAnimationFrame(animate);
+      }
+
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          cards.forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          activeArt = card.dataset.art;
+          startTime = performance.now();
+          document.body.classList.add('scene');
+        });
+
+        card.addEventListener('mousemove', event => {
+          const rect = card.getBoundingClientRect();
+          const x = event.clientX - rect.left - rect.width / 2;
+          const y = event.clientY - rect.top - rect.height / 2;
+          card.style.transform = `translateY(-6px) scale(1.02) rotateX(${(-y / 20).toFixed(2)}deg) rotateY(${(
+            x / 20
+          ).toFixed(2)}deg)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = '';
+        });
+      });
+
+      artCanvas.addEventListener('click', () => {
+        if (!activeArt) return;
+        activeArt = null;
+        document.body.classList.remove('scene');
+      });
+
+      window.addEventListener('mousemove', event => {
+        mouse = { x: event.clientX, y: event.clientY, active: true };
+      });
+
+      window.addEventListener('mouseleave', () => {
+        mouse.active = false;
+      });
+
+      window.addEventListener('resize', () => {
+        resizeAll();
+      });
+
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
