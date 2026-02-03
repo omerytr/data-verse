@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ryoji Ikeda — Dijital Kozmos</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        background: #000;
+        color: #f5f5f5;
+        overflow: hidden;
+      }
+
+      .stage {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        z-index: 1;
+      }
+
+      .hero {
+        padding: 32px 6vw 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        z-index: 2;
+      }
+
+      .hero h1 {
+        font-size: clamp(24px, 4vw, 40px);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero p {
+        font-size: 14px;
+        max-width: 680px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 24px;
+        padding: 0 6vw 32px;
+        align-items: start;
+        z-index: 2;
+      }
+
+      .card {
+        position: relative;
+        border-radius: 18px;
+        padding: 18px;
+        height: 240px;
+        background: rgba(10, 10, 10, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+        overflow: hidden;
+        transition: transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+      }
+
+      .card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top, rgba(255, 255, 255, 0.12), transparent 60%);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-6px) scale(1.02);
+        border-color: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 28px rgba(255, 255, 255, 0.2);
+      }
+
+      .card:hover::before {
+        opacity: 1;
+      }
+
+      .card h2 {
+        font-size: 16px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .card span {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        display: inline-block;
+        margin-top: 8px;
+      }
+
+      .card .hint {
+        position: absolute;
+        bottom: 16px;
+        left: 18px;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .card.active {
+        border-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 40px rgba(255, 255, 255, 0.32);
+      }
+
+      .artwork-panel {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      #artworkCanvas,
+      #starCanvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .legend {
+        position: absolute;
+        right: 6vw;
+        bottom: 5vh;
+        max-width: 240px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.6);
+        z-index: 2;
+        text-align: right;
+      }
+
+      .legend strong {
+        display: block;
+        font-size: 13px;
+        letter-spacing: 0.2em;
+        margin-bottom: 6px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      @media (max-width: 720px) {
+        .hero {
+          padding: 24px;
+        }
+
+        .gallery {
+          padding: 0 24px 24px;
+        }
+
+        .legend {
+          position: static;
+          padding: 0 24px 24px;
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="starCanvas" aria-hidden="true"></canvas>
+    <canvas id="artworkCanvas" aria-hidden="true"></canvas>
+
+    <div class="stage">
+      <header class="hero">
+        <h1>Ryoji Ikeda — Kozmik Deneyim</h1>
+        <p>
+          Siyah uzay fonu üzerinde üç ışık objesi seç. Üzerine gelince kenarları parlasın, tıklayınca eserin oluşum
+          anı canlı animasyonla başlasın.
+        </p>
+      </header>
+
+      <section class="gallery" role="list">
+        <article class="card active" role="listitem" data-art="sphere">
+          <h2>Superposition</h2>
+          <span>Küre + halka oluşumu</span>
+          <div class="hint">TIKLA</div>
+        </article>
+        <article class="card" role="listitem" data-art="datamatics">
+          <h2>Datamatics</h2>
+          <span>Veri akışı / çizgi matrisi</span>
+          <div class="hint">TIKLA</div>
+        </article>
+        <article class="card" role="listitem" data-art="testpattern">
+          <h2>Test Pattern</h2>
+          <span>Ritm ve ışık dalgaları</span>
+          <div class="hint">TIKLA</div>
+        </article>
+      </section>
+
+      <aside class="legend" aria-live="polite">
+        <strong id="legendTitle">Superposition</strong>
+        <span id="legendBody">
+          Çizgiler 0'dan küreye dönüşür, etrafında Satürn benzeri halka akışı belirir.
+        </span>
+      </aside>
+    </div>
+
+    <script>
+      const starCanvas = document.getElementById('starCanvas');
+      const artworkCanvas = document.getElementById('artworkCanvas');
+      const legendTitle = document.getElementById('legendTitle');
+      const legendBody = document.getElementById('legendBody');
+      const cards = Array.from(document.querySelectorAll('.card'));
+
+      const legendCopy = {
+        sphere: {
+          title: 'Superposition',
+          body: "Çizgiler 0'dan küreye dönüşür, etrafında Satürn benzeri halka akışı belirir."
+        },
+        datamatics: {
+          title: 'Datamatics',
+          body: 'Dijital gürültü ve çizgi matrisi, veri frekansları gibi akar.'
+        },
+        testpattern: {
+          title: 'Test Pattern',
+          body: 'Monokrom titreşimler ve ritmik ışık patlamaları.'
+        }
+      };
+
+      function resizeCanvas(canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        return ctx;
+      }
+
+      let starCtx = resizeCanvas(starCanvas);
+      let artCtx = resizeCanvas(artworkCanvas);
+
+      const stars = Array.from({ length: 180 }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        radius: Math.random() * 1.6 + 0.2,
+        alpha: Math.random() * 0.8 + 0.1,
+        drift: Math.random() * 0.2 + 0.1
+      }));
+
+      function renderStars() {
+        starCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        starCtx.fillStyle = '#000';
+        starCtx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        stars.forEach(star => {
+          starCtx.beginPath();
+          starCtx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+          starCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+          starCtx.fill();
+          star.y += star.drift;
+          if (star.y > window.innerHeight) {
+            star.y = -5;
+            star.x = Math.random() * window.innerWidth;
+          }
+        });
+      }
+
+      let activeArt = 'sphere';
+      let startTime = performance.now();
+
+      const spherePoints = Array.from({ length: 220 }, () => {
+        const u = Math.random() * Math.PI * 2;
+        const v = Math.acos(2 * Math.random() - 1);
+        return {
+          theta: u,
+          phi: v,
+          phase: Math.random() * Math.PI * 2
+        };
+      });
+
+      function drawSphere(time) {
+        const t = Math.min(1, (time - startTime) / 2200);
+        const radius = t * 140;
+        artCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        artCtx.save();
+        artCtx.translate(window.innerWidth / 2, window.innerHeight / 2 + 40);
+        artCtx.strokeStyle = 'rgba(255,255,255,0.6)';
+        artCtx.lineWidth = 1;
+        spherePoints.forEach(point => {
+          const x = radius * Math.sin(point.phi) * Math.cos(point.theta + time * 0.0004);
+          const y = radius * Math.cos(point.phi);
+          const z = radius * Math.sin(point.phi) * Math.sin(point.theta + time * 0.0004);
+          const scale = (z / radius + 1.4) / 2.2;
+          artCtx.beginPath();
+          artCtx.arc(x * scale, y * scale, 1.2 * scale + 0.2, 0, Math.PI * 2);
+          artCtx.fillStyle = `rgba(255,255,255,${0.3 + scale * 0.5})`;
+          artCtx.fill();
+          if (Math.random() > 0.96) {
+            artCtx.beginPath();
+            artCtx.moveTo(0, 0);
+            artCtx.lineTo(x * scale, y * scale);
+            artCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+            artCtx.stroke();
+          }
+        });
+
+        artCtx.strokeStyle = 'rgba(255,255,255,0.45)';
+        artCtx.lineWidth = 1.2;
+        const ringRadius = radius * 1.25;
+        for (let i = 0; i < 3; i++) {
+          artCtx.beginPath();
+          for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+            const rx = Math.cos(a) * ringRadius;
+            const ry = Math.sin(a) * ringRadius * 0.35;
+            if (a === 0) artCtx.moveTo(rx, ry);
+            artCtx.lineTo(rx, ry);
+          }
+          artCtx.stroke();
+          artCtx.rotate(0.1 + i * 0.12);
+        }
+        artCtx.restore();
+      }
+
+      function drawDatamatics(time) {
+        artCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        artCtx.save();
+        artCtx.translate(window.innerWidth / 2, window.innerHeight / 2);
+        const size = 260;
+        const step = 18;
+        for (let x = -size; x <= size; x += step) {
+          for (let y = -size; y <= size; y += step) {
+            const noise = Math.sin((x + time * 0.08) * 0.02) + Math.cos((y + time * 0.1) * 0.02);
+            const alpha = 0.2 + (noise + 2) / 6;
+            artCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+            artCtx.fillRect(x, y, 2, 12 + noise * 4);
+          }
+        }
+        artCtx.restore();
+      }
+
+      function drawTestPattern(time) {
+        artCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        const bands = 12;
+        for (let i = 0; i < bands; i++) {
+          const y = (window.innerHeight / bands) * i;
+          const pulse = Math.sin(time * 0.003 + i) * 0.5 + 0.5;
+          artCtx.fillStyle = `rgba(255,255,255,${0.1 + pulse * 0.4})`;
+          artCtx.fillRect(0, y, window.innerWidth, window.innerHeight / bands);
+        }
+        artCtx.strokeStyle = 'rgba(255,255,255,0.45)';
+        artCtx.lineWidth = 1;
+        for (let x = 0; x < window.innerWidth; x += 40) {
+          artCtx.beginPath();
+          artCtx.moveTo(x, 0);
+          artCtx.lineTo(x + Math.sin(time * 0.004 + x * 0.01) * 20, window.innerHeight);
+          artCtx.stroke();
+        }
+      }
+
+      function animate(time) {
+        renderStars();
+        if (activeArt === 'sphere') drawSphere(time);
+        if (activeArt === 'datamatics') drawDatamatics(time);
+        if (activeArt === 'testpattern') drawTestPattern(time);
+        requestAnimationFrame(animate);
+      }
+
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          cards.forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          activeArt = card.dataset.art;
+          startTime = performance.now();
+          legendTitle.textContent = legendCopy[activeArt].title;
+          legendBody.textContent = legendCopy[activeArt].body;
+        });
+      });
+
+      window.addEventListener('resize', () => {
+        starCtx = resizeCanvas(starCanvas);
+        artCtx = resizeCanvas(artworkCanvas);
+      });
+
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
